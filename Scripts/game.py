@@ -3,17 +3,17 @@ from random import randint
 from sys import exit
 from pandas import DataFrame, read_csv
 from math import ceil
-from ai_model import complete_model
+from ai_model import return_model
 from numpy import array, expand_dims
 import threading
 from queue import Queue
 import os
 
+os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
 pygame.init()
 game_font_style = "Monsterrat"
 
 display_size = [pygame.display.Info().current_w, pygame.display.Info().current_h]
-print(display_size)
 win_length, win_height = int(display_size[0]*0.75), int(display_size[1]*0.75)
 win_x, win_y = display_size[0]/2-win_length/2, display_size[1]/2-win_height/2
 os.environ['SDL_VIDEO_WINDOW_POS'] = "%d,%d" % (win_x, win_y)
@@ -43,11 +43,15 @@ clock = pygame.time.Clock()
 
 score = 0
 game_enabled = True
+run_ai = True
+data_rows_collected = 0
+data_rows_limit = 200
 
-dataset_file = os.path.join("Assets", "training_data.csv")
+dataset_file = os.path.join("Assets", "data.csv")
 dataset = read_csv(dataset_file)
 data_cols = dataset.columns
 curr_data = []
+complete_model = return_model(True)
 
 
 class Spawner:
@@ -66,7 +70,8 @@ class Spawner:
         self.x_gap_remaining = self.curr_x_gap
         
     def create_new_pair(self, x_pos):
-        top_pipe_height = randint(self.min_pipe_length, win_height-base.get_height()-self.gap-self.min_pipe_length)
+        # top_pipe_height = randint(self.min_pipe_length, win_height-base.get_height()-self.gap-self.min_pipe_length)
+        top_pipe_height = randint(0, 150)
         self.obstacle_list.append(Obstacle(x_pos, 50, top_pipe_height, "top", pipe, 100))
         self.obstacle_list.append(Obstacle(x_pos, 50, win_height-base.get_height()-top_pipe_height-self.gap, "bottom", pipe, 100))
         
@@ -181,9 +186,13 @@ def start_game():
 
 def add_data(player, spawner):
     global curr_data
+    gap = 0.7
     obstacles = player.danger_obstacles
+    margin_of_error = abs(player.y-(obstacles[0].y+obstacles[0].height+spawner.gap*gap))
+    accuracy = 1-(margin_of_error/(win_height/20))
     new_data = [player.y, obstacles[0].y+obstacles[0].height, obstacles[1].y, 
-                (player.y-(obstacles[0].y+obstacles[0].height))/spawner.gap, abs((player.y-obstacles[1].y)/spawner.gap)]
+                (player.y-(obstacles[0].y+obstacles[0].height)), obstacles[1].y-player.y, 
+                accuracy, gap]
     curr_data = new_data
     
 
@@ -211,16 +220,19 @@ def predict_data(input_queue, output_queue):
 
 def enter_data(player, spawner, input_queue):
     obstacles = player.danger_obstacles
-    gap = 0.6
+    gap = 0.7
     new_data = array([obstacles[0].y+obstacles[0].height, obstacles[1].y, 
-                gap, 1-gap])
+                spawner.gap*gap, spawner.gap*(1-gap), 1, gap])
     input_queue.put(new_data)
 
 
 def main():
     global curr_data
+    global complete_model
+    global data_rows_collected, data_rows_limit
     run = True
-    auto_retry = False
+    auto_retry = True
+    data_for_failure = False
     score, curr_score, game_enabled = start_game()
     rendered_score_text = game_font.render(f"{score}", True, black)
     restart_game_text = game_font.render("Press 'R' to restart game.", True, black)
@@ -234,31 +246,32 @@ def main():
             if event.type == pygame.QUIT:
                 run = False
             if event.type == pygame.KEYDOWN:
-                if game_enabled and event.key == pygame.K_SPACE:
-                    # add_data(player, spawner)
-                    # player.click()
-                    pass
+                if game_enabled and event.key == pygame.K_SPACE and not run_ai:
+                    add_data(player, spawner)
+                    player.click()
                 if not game_enabled and event.key == pygame.K_r:
                     score, curr_score, game_enabled = start_game()
                     rendered_score_text = game_font.render(f"{score}", True, black)
                     prediction = None
+                    data_for_failure = False
         window.fill(white)
         window.blit(bg, (0, 0))
         if player.y+player.height < win_height:
             score += player.move(fps, spawner.obstacle_list)
         if game_enabled:
-            if prediction is not None and player.y >= prediction:
-                # add_data(player, spawner)
+            if prediction is not None and player.y >= prediction and run_ai:
+                add_data(player, spawner)
                 player.click()
-            if input_queue.empty() and prediction is None:
+            if input_queue.empty() and prediction is None and run_ai:
                 enter_data(player, spawner, input_queue)
                 prediction = output_queue.get()
             if score > curr_score:
                 prediction = None
                 rendered_score_text = game_font.render(f"{score}", True, black)
                 curr_score = score
-                # upload_data(curr_data)
+                upload_data(curr_data)
                 curr_data = []
+                data_rows_collected += 1
             game_enabled = player.check_collision()
         else:
             score = curr_score
@@ -267,18 +280,32 @@ def main():
         window.blit(base, (0, win_height-base.get_height()))
         window.blit(rendered_score_text, (win_length-1.25*game_font.size(f"{score}")[0], 15))
         if not game_enabled:
+            if not data_for_failure:
+                upload_data(curr_data) 
+                data_for_failure = True
+                data_rows_collected += 1
             if auto_retry:
                 score, curr_score, game_enabled = start_game()
                 rendered_score_text = game_font.render(f"{score}", True, black)
                 prediction = None
+                data_for_failure = False
             else:
                 window.blit(game_over, (win_length/2-game_over.get_width()/2, (win_height-base.get_height())/2-game_over.get_height()/2))
                 window.blit(restart_game_text, (win_length/2-restart_game_text.get_width()/2, (win_height-base.get_height())/2-restart_game_text.get_height()/2+100))
+        if data_rows_collected >= data_rows_limit:
+            break
         pygame.display.update()
     input_queue.put(None)
     predict_thread.join()
-    exit()
 
 
 if __name__ == "__main__":
-    main()
+    while True:
+        main()
+        if data_rows_collected >= data_rows_limit:
+            complete_model = return_model(True)
+            data_rows_collected = 0
+            print("New model being created.")
+        else:
+            break
+    exit()
