@@ -4,10 +4,10 @@
 This project is an AI-controlled version of the classic Flappy Bird game. Using machine learning, the AI learns to navigate the bird through pipes by optimizing its actions for the highest possible score. The game is implemented using Python and utilizes image assets to replicate the original Flappy Bird aesthetics.
 
 ## Features
-- AI-controlled gameplay using a pre-trained model
-- Realistic Flappy Bird visuals
-- Dynamic pipe generation and collision detection
-- Score tracking and game over screen
+- AI-controlled gameplay using a pre-trained model.
+- Realistic Flappy Bird visuals.
+- Dynamic pipe generation and collision detection.
+- Score tracking and game over screen.
 
 ## Installation
 ```bash
@@ -56,7 +56,7 @@ AI-Flappy-Bird/
 ```
 
 ## AI Model Explanation
-The AI model is trained through gameplay as for each new set of pipes, the AI attempts to find the y-level that it needs to be flapping at. Each time the AI attempts to go through a set of pipes, an accuracy score is calculated, which is a representation of how close to the perfect y-level did the AI choose to flap at. Regardless of whether the AI successfully passes through the set of pipes or not, a new data record is then added to `data.csv`, consisting of pipe information and the accuracy for that given attempt. This is so that the AI has more data to learn off and hence it will improve. 
+The AI model is trained through gameplay as for each new set of pipes, the AI attempts to find the y-level that it needs to be flapping at. Each time the AI attempts to go through a set of pipes, an accuracy score is calculated, which is a representation of how close to the perfect y-level did the AI choose to flap at. Regardless of whether the AI successfully passes through the set of pipes or not, a new data record is then added to `data.csv`, consisting of pipe information and the accuracy for that given attempt. This is so that the AI has more data to learn off, which should lead to an improved model. 
 
 ## License
 This project is licensed under the MIT License.
