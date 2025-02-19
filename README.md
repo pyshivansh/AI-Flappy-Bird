@@ -26,9 +26,9 @@ python Scripts/game.py
 - Observe the AI learning and then improving its score over time.
 
 ## Technologies Used
-- Python.
-- Machine Learning (using scikit-learn or a similar framework).
-- Pygame for game rendering.
+- Python, including OOP game design.
+- Machine Learning and Data Management modules, including Sci-Kit Learn, Xgboost and Pandas.
+- Pygame for game rendering and management.
 
 ## File Structure
 ```
