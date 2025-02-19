@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>98a084ba-824f-4a99-810c-c767c6c342ae</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>Scripts\adjust_data.py</StartupFile>
+    <StartupFile>Scripts\game.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -32,13 +32,12 @@
   <ItemGroup>
     <Content Include="Assets\background-day.png" />
     <Content Include="Assets\base.png" />
-    <Content Include="Assets\data.csv" />
     <Content Include="Assets\gameover.png" />
+    <Content Include="Assets\data.csv" />
     <Content Include="Assets\pipe-green.png" />
     <Content Include="Assets\AI_model.pkl" />
     <Content Include="Assets\redbird-downflap.png" />
     <Content Include="Assets\redbird-upflap.png" />
-    <Content Include="Assets\training_data.csv" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
